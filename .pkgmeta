@@ -1,0 +1,9 @@
+package-as: GuildPriceCheck
+
+enable-nolib-creation: no
+
+ignore:
+  - .github
+  - .gitignore
+  - .vscode
+  - .pkgmeta
