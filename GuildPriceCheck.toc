@@ -1,0 +1,8 @@
+## Interface: 50505
+## Title: GuildPriceCheck
+## Notes: Replies to guild queries with Auctionator prices.
+## Author: PsyKzz
+## Version: 0.0.1
+## RequiredDeps: Auctionator
+
+core.lua
