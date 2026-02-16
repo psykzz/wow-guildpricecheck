@@ -4,10 +4,12 @@
 ## Author: PsyKzz
 ## Version: @project-version@
 ## RequiredDeps: Auctionator
+
 ## X-Curse-Project-ID: 1463417
 
 ## X-Category: Auction & Economy
-
 ## Category-enUS: Auctions
 
+util.lua
 core.lua
+slash.lua
