@@ -3,14 +3,24 @@ local addonName, ns = ...
 local PREFIX = "GPCL_SYNC"
 C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
 
-
 -- compat
 local C_ChatInfo_SendChatMessage = C_ChatInfo.SendChatMessage or SendChatMessage -- Fallback for older WoW versions
 local C_Item_GetItemInfo = C_Item.GetItemInfo or GetItemInfo
 
-local LAST_SEEN_CLEANUP = 300 -- 5 minutes
+local LAST_SEEN_CLEANUP = 60 -- 1 minute
 
-ns.OnlineAddonUsers = {}      -- [name] = { rank = index, guid = string, lastSeen = time }
+ns.OnlineAddonUsers = {}     -- [name] = { rank = index, guid = string, lastSeen = time }
+
+local function CreateThrottledFunction(func, duration)
+    local lastUsage = 0
+    return function(...)
+        local now = GetTime()
+        if (now - lastUsage) >= duration then
+            lastUsage = now
+            return func(...)
+        end
+    end
+end
 
 local function IsLeader()
     if not IsInGuild() then return true end
@@ -45,6 +55,8 @@ local function SendPresence(msgType)
     C_ChatInfo.SendAddonMessage(PREFIX, payload, "GUILD")
 end
 
+local ThrottledSendPresence = CreateThrottledFunction(SendPresence, 30)
+
 local function FormatMoney(amount)
     if not amount or amount <= 0 then return "0c" end
     local gold = math.floor(amount / 10000)
@@ -78,6 +90,7 @@ frame:RegisterEvent("CHAT_MSG_GUILD")
 frame:RegisterEvent("CHAT_MSG_ADDON")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_LOGOUT")
+frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
@@ -85,6 +98,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
         SendPresence("PING")
     elseif event == "PLAYER_LOGOUT" then
         SendPresence("LEAVE")
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        ThrottledSendPresence("PING")
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, message, channel, sender = ...
         if prefix ~= PREFIX or sender == UnitName("player") then return end
@@ -106,7 +121,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
     elseif event == "CHAT_MSG_GUILD" then
         local message, sender = ...
-        -- Only proceed if the message starts with "?" AND I am the elected leader
         if not message:find("^%?") or not IsLeader() then return end
 
         for itemLink in message:gmatch("(|c.-|h.-|h|r)") do
