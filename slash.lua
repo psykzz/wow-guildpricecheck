@@ -11,7 +11,8 @@ local function ShowStatus()
     table.insert(candidates, { name = myName, rank = myRank or 99, guid = UnitGUID("player") })
 
     for name, data in pairs(ns.OnlineAddonUsers) do
-        if (GetTime() - data.lastSeen) < 300 then
+        local isOnline = ns.IsPlayerActuallyOnline(name)
+        if isOnline then
             table.insert(candidates, { name = name, rank = data.rank, guid = data.guid })
         end
     end
@@ -30,10 +31,9 @@ local function ShowStatus()
     for name, data in pairs(ns.OnlineAddonUsers) do
         local isLeader = (name == electedLeader)
         local color = ns.GetStatusColor(false, isLeader)
-        local secondsAgo = math.floor(GetTime() - data.lastSeen)
 
-        print(string.format("|c%s[%s]|r - Rank Index: %d (Seen %ds ago)",
-            color, name, data.rank, secondsAgo))
+        print(string.format("|c%s[%s]|r - Rank Index: %d (%s)",
+            color, name, data.rank, ns.IsPlayerActuallyOnline(name) and "online" or "offline"))
     end
 
     -- Show self
