@@ -31,9 +31,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
             ns.OnlineAddonUsers[sender] = nil
         else
             ns.OnlineAddonUsers[sender] = {
+                name = sender,
                 rank = tonumber(rank) or 99,
                 guid = guid,
-                lastSeen = GetTime()
             }
 
             if msgType == "PING" then

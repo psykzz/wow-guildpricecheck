@@ -2,8 +2,6 @@ local addonName, ns = ...
 
 ns.PREFIX = "GPCL_SYNC"
 
-local LAST_SEEN_CLEANUP = 60 -- 1 minute
-
 -- compat
 local C_ChatInfo_SendChatMessage = C_ChatInfo.SendChatMessage or SendChatMessage -- Fallback for older WoW versions
 local C_Item_GetItemInfo = C_Item.GetItemInfo or GetItemInfo
@@ -39,7 +37,8 @@ function ns.IsLeader()
     table.insert(candidates, { name = myName, rank = myRank, guid = myGUID })
 
     for name, data in pairs(ns.OnlineAddonUsers) do
-        if (GetTime() - data.lastSeen) < LAST_SEEN_CLEANUP then
+        local isOnline = ns.IsPlayerActuallyOnline(name)
+        if isOnline then
             table.insert(candidates, { name = name, rank = data.rank, guid = data.guid })
         end
     end
@@ -52,12 +51,21 @@ function ns.IsLeader()
     return candidates[1].guid == myGUID
 end
 
+ns.ThrottledGuildPresenceUpdate = ns.CreateThrottledFunction(function()
+    if IsInGuild() then
+        C_GuildInfo.GuildRoster()
+    end
+end, 10)
+
 function ns.SendPresence(msgType)
     if not IsInGuild() then return end
     local _, _, rankIndex = GetGuildInfo("player")
     local guid = UnitGUID("player")
     local payload = string.format("%s:%d:%s", msgType, rankIndex or 99, guid)
     C_ChatInfo.SendAddonMessage(ns.PREFIX, payload, "GUILD")
+
+    -- Additionally request roster information to validate "pongs" are online still.
+    ns.ThrottledGuildPresenceUpdate()
 end
 
 ns.ThrottledSendPresence = ns.CreateThrottledFunction(ns.SendPresence, 30)
@@ -92,4 +100,30 @@ function ns.GetStatusColor(isMe, isLeader)
     if isLeader then return "ff00ff00" end -- Green for Leader
     if isMe then return "ff00ffff" end     -- Cyan for You
     return "ffffffff"                      -- White for Others
+end
+
+
+function ns.IsPlayerActuallyOnline(targetName)
+    if not IsInGuild() then return false end
+    
+    -- Ensure we have the full name (Name-Realm) for comparison
+    -- If targetName is just "Character", we need to handle that
+    local myRealm = GetRealmName():gsub("%s+", "")
+    if not targetName:find("-") then
+        targetName = targetName .. "-" .. myRealm
+    end
+
+    local numMembers = GetNumGuildMembers()
+    for i = 1, numMembers do
+        -- GetGuildRosterInfo returns:
+        -- fullName, rankName, rankIndex, level, classDisplayName, zone, 
+        -- publicNote, officerNote, isOnline, status, classFileName
+        local fullName, _, _, _, _, _, _, _, isOnline = GetGuildRosterInfo(i)
+        
+        if fullName == targetName then
+            return isOnline
+        end
+    end
+    
+    return false
 end
