@@ -77,24 +77,32 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("CHAT_MSG_GUILD")
 frame:RegisterEvent("CHAT_MSG_ADDON")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("PLAYER_LOGOUT")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         print("|cff00ff00GuildPriceCheck Loaded:|r Listening for ?[Item] in Guild Chat.")
         SendPresence("PING")
+    elseif event == "PLAYER_LOGOUT" then
+        SendPresence("LEAVE")
     elseif event == "CHAT_MSG_ADDON" then
         local prefix, message, channel, sender = ...
         if prefix ~= PREFIX or sender == UnitName("player") then return end
 
         local msgType, rank, guid = strsplit(":", message)
-        ns.OnlineAddonUsers[sender] = {
-            rank = tonumber(rank) or 99,
-            guid = guid,
-            lastSeen = GetTime()
-        }
 
-        if msgType == "PING" then
-            C_Timer.After(math.random(1, 15) / 10, function() SendPresence("PONG") end)
+        if msgType == "LEAVE" then
+            ns.OnlineAddonUsers[sender] = nil
+        else
+            ns.OnlineAddonUsers[sender] = {
+                rank = tonumber(rank) or 99,
+                guid = guid,
+                lastSeen = GetTime()
+            }
+
+            if msgType == "PING" then
+                C_Timer.After(math.random(1, 15) / 10, function() SendPresence("PONG") end)
+            end
         end
     elseif event == "CHAT_MSG_GUILD" then
         local message, sender = ...
