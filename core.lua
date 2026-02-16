@@ -121,6 +121,9 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
     elseif event == "CHAT_MSG_GUILD" then
         local message, sender = ...
+
+        if not IsLeader() then return print("not leader") end
+
         if not message:find("^%?") or not IsLeader() then return end
 
         for itemLink in message:gmatch("(|c.-|h.-|h|r)") do
@@ -139,6 +142,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 C_ChatInfo_SendChatMessage(response, "GUILD")
                 return
             end
+
             if not price then
                 local response = string.format("No price available for %s. No market data", itemLink)
                 C_ChatInfo_SendChatMessage(response, "GUILD")
@@ -150,3 +154,70 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
     end
 end)
+
+
+local function GetStatusColor(isMe, isLeader)
+    if isLeader then return "ff00ff00" end -- Green for Leader
+    if isMe then return "ff00ffff" end     -- Cyan for You
+    return "ffffffff"                      -- White for Others
+end
+
+local function ShowStatus()
+    local myName = UnitName("player")
+    local electedLeader = "Unknown"
+
+    -- Determine who the leader is for the status printout
+    -- (Uses the same logic as your IsLeader function)
+    local candidates = {}
+    local _, _, myRank = GetGuildInfo("player")
+    table.insert(candidates, { name = myName, rank = myRank or 99, guid = UnitGUID("player") })
+
+    for name, data in pairs(ns.OnlineAddonUsers) do
+        if (GetTime() - data.lastSeen) < 300 then
+            table.insert(candidates, { name = name, rank = data.rank, guid = data.guid })
+        end
+    end
+
+    table.sort(candidates, function(a, b)
+        if a.rank ~= b.rank then return a.rank < b.rank end
+        return a.guid < b.guid
+    end)
+
+    if candidates[1] then electedLeader = candidates[1].name end
+
+    print("|cffffff00--- GPC Network Status ---|r")
+    print(string.format("Current Leader: |cff00ff00%s|r", electedLeader))
+
+    -- Print list of all peers
+    for name, data in pairs(ns.OnlineAddonUsers) do
+        local isLeader = (name == electedLeader)
+        local color = GetStatusColor(false, isLeader)
+        local secondsAgo = math.floor(GetTime() - data.lastSeen)
+
+        print(string.format("|c%s[%s]|r - Rank Index: %d (Seen %ds ago)",
+            color, name, data.rank, secondsAgo))
+    end
+
+    -- Show self
+    local myColor = GetStatusColor(true, myName == electedLeader)
+    print(string.format("|c%s[%s] (You)|r - Rank Index: %d",
+        myColor, myName, myRank or 99))
+    print("|cffffff00--------------------------|r")
+end
+
+-- --- Slash Command Registration ---
+SLASH_GPC1 = "/gpc"
+SlashCmdList["GPC"] = function(msg)
+    local cmd = msg:lower():trim()
+    if cmd == "status" then
+        ShowStatus()
+    elseif cmd == "ping" then
+        print("Sending manual network ping...")
+        -- Explicitly call your SendPresence function from earlier
+        if SendPresence then SendPresence("PING") end
+    else
+        print("GuildPriceCheck Usage:")
+        print("  /gpc status - See online peers and elected leader")
+        print("  /gpc ping   - Force a network refresh")
+    end
+end
