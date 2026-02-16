@@ -122,15 +122,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "CHAT_MSG_GUILD" then
         local message, sender = ...
 
-        if not IsLeader() then return print("not leader") end
-
-        if not message:find("^%?") or not IsLeader() then return end
+        if not message:find("^%?") or not IsLeader() then return  end
 
         for itemLink in message:gmatch("(|c.-|h.-|h|r)") do
             local price = nil
 
             if TSM_API then
-                price = TSM_API.GetCustomPriceValue("DBMarket", itemLink)
+                price = TSM_API.GetCustomPriceValue("DBMarket", TSM_API.ToItemString(itemLink))
             end
 
             if not price and Auctionator and Auctionator.API and Auctionator.API.v1 then
