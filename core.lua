@@ -44,6 +44,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         for itemLink in message:gmatch("(|c.-|h.-|h|r)") do
             local price = nil
+            local disenchant = nil
+            local age = nil
 
             if TSM_API then
                 price = TSM_API.GetCustomPriceValue("DBMinBuyout", TSM_API.ToItemString(itemLink))
@@ -51,6 +53,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
             if not price and Auctionator and Auctionator.API and Auctionator.API.v1 then
                 price = Auctionator.API.v1.GetAuctionPriceByItemLink(addonName, itemLink)
+                disenchant = Auctionator.API.v1.GetDisenchantPriceByItemLink(addonName, itemLink)
+                age = Auctionator.API.v1.GetAuctionAgeByItemLink(addonName, itemLink)
             end
 
             if ns.IsItemSoulbound(itemLink) then
@@ -64,8 +68,11 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 ns.SendChatMessage(response, "GUILD")
                 return
             end
-
+            local extra = string.format(" (Disenchanted: %s | Age: %s)", ns.FormatMoney(disenchant), age)
             local response = string.format("Price for %s: %s", itemLink, ns.FormatMoney(price))
+            if age ~= nil then
+                   response = response .. extra 
+            end
             ns.SendChatMessage(response, "GUILD")
         end
     end
