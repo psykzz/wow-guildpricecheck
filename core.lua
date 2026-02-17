@@ -68,10 +68,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 ns.SendChatMessage(response, "GUILD")
                 return
             end
-            local extra = string.format(" (Disenchanted: %s | Age: %s)", ns.FormatMoney(disenchant), age)
+            local extra = string.format(" (Disenchanted: %s - Age: %s)", ns.FormatMoney(disenchant), age)
             local response = string.format("Price for %s: %s", itemLink, ns.FormatMoney(price))
             if age ~= nil then
-                   response = response .. extra 
+                   response = response .. extra
             end
             ns.SendChatMessage(response, "GUILD")
         end
