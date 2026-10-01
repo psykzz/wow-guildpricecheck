@@ -8,7 +8,9 @@
 ## X-Curse-Project-ID: 1463417
 
 ## X-Category: Auction & Economy
+## Category: Auctions
 ## Category-enUS: Auctions
+## IconTexture: Interface\Icons\INV_Misc_Coin_01
 
 util.lua
 core.lua

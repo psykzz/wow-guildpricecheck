@@ -8,6 +8,7 @@ A World of Warcraft addon that replies to guild queries with Auctionator prices.
 - Returns the current auction house price from Auctionator data
 - Uses leader election to ensure only one guild member responds
 - Requires the Auctionator addon to function
+- Listed under **Auctions** in the AddOns list with a coin icon
 
 ## Installation
 
