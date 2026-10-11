@@ -39,6 +39,15 @@ function ns.CompareVersions(v1, v2)
     return 0
 end
 
+function ns.IsHigherPriorityCandidate(a, b)
+    local versionOrder = ns.CompareVersions(a.version or "0.0.0", b.version or "0.0.0")
+    if versionOrder ~= 0 then return versionOrder > 0 end
+
+    local aRank, bRank = a.rank or 99, b.rank or 99
+    if aRank ~= bRank then return aRank < bRank end
+    return (a.guid or a.name or "") < (b.guid or b.name or "")
+end
+
 -- Normalizes a player name to "Name-Realm" form so OnlineAddonUsers keys and
 -- comparisons are consistent regardless of whether the caller (chat events,
 -- addon messages, etc.) supplied a realm-qualified name.
@@ -68,15 +77,8 @@ function ns.GetElectionCandidates()
     end
 
     table.sort(candidates, function(a, b)
-        -- Filter out users with older versions - they should never be elected
-        local aIsNewer = ns.CompareVersions(a.version, b.version) >= 0
-        local bIsNewer = ns.CompareVersions(b.version, a.version) >= 0
-
-        if aIsNewer and not bIsNewer then return true end
-        if bIsNewer and not aIsNewer then return false end
-
-        if a.rank ~= b.rank then return a.rank < b.rank end
-        return a.guid < b.guid
+        -- Prefer newer versions, then guild rank and GUID.
+        return ns.IsHigherPriorityCandidate(a, b)
     end)
 
     return candidates, myRank
