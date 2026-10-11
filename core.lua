@@ -154,9 +154,15 @@ frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_LOGOUT")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
+local hasShownLoadedMessage = false
+
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
-        print("|cff00ff00GuildPriceCheck Loaded:|r Listening for ?[Item] in Guild Chat.")
+        local isInitialLogin = ...
+        if isInitialLogin and not hasShownLoadedMessage then
+            print("|cff00ff00GuildPriceCheck Loaded:|r Listening for ?[Item] in Guild Chat.")
+            hasShownLoadedMessage = true
+        end
         ns.SendPresence("PING")
     elseif event == "PLAYER_LOGOUT" then
         ns.SendPresence("LEAVE")
