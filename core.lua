@@ -19,6 +19,38 @@ end
 
 ns.OnlineAddonUsers = {}     -- [name] = { name = string, rank = index, guid = string, version = string }
 
+local MAX_USAGE_ENTRIES = 20
+
+if type(GuildPriceCheckDB) ~= "table" then
+    GuildPriceCheckDB = {}
+end
+if type(GuildPriceCheckDB.usage) ~= "table" then
+    GuildPriceCheckDB.usage = {}
+end
+
+ns.UsageHistory = GuildPriceCheckDB.usage
+while #ns.UsageHistory > MAX_USAGE_ENTRIES do
+    table.remove(ns.UsageHistory, 1)
+end
+
+function ns.RecordUsage(request, reply)
+    table.insert(ns.UsageHistory, {
+        timestamp = request.timestamp or time(),
+        channel = request.channel or "Guild",
+        user = request.user or "Unknown",
+        message = request.message,
+        reply = reply,
+    })
+
+    while #ns.UsageHistory > MAX_USAGE_ENTRIES do
+        table.remove(ns.UsageHistory, 1)
+    end
+
+    if ns.RefreshUsage then
+        ns.RefreshUsage()
+    end
+end
+
 -- TSM's public API does not expose a per-item last-scan/age value, so we can't
 -- truly compare freshness both ways. Auctionator's GetAuctionAgeByItemLink
 -- returns whole days since the item was last seen on the AH (nil if never
@@ -58,8 +90,8 @@ end
 -- Resolves the best available price for an item, preferring Auctionator's
 -- data when it's fresh (see ns.AUCTIONATOR_FRESHNESS_THRESHOLD_DAYS above)
 -- and falling back to TSM, then to stale Auctionator data.
--- Returns price, disenchant price, and age in days (disenchant/age are only
--- populated when the chosen price came from Auctionator).
+-- The disenchant value is sourced independently from Auctionator. Auction age
+-- is returned only when an Auctionator price is selected.
 local function ResolvePrice(itemLink)
     local tsmPrice = nil
     if TSM_API then
@@ -76,7 +108,7 @@ local function ResolvePrice(itemLink)
     if auctionatorPrice and auctionatorAge and auctionatorAge <= ns.AUCTIONATOR_FRESHNESS_THRESHOLD_DAYS then
         return auctionatorPrice, auctionatorDisenchant, auctionatorAge
     elseif tsmPrice then
-        return tsmPrice, nil, nil
+        return tsmPrice, auctionatorDisenchant, nil
     else
         return auctionatorPrice, auctionatorDisenchant, auctionatorAge
     end
@@ -84,34 +116,41 @@ end
 
 local function FormatPriceResponse(itemLink, price, disenchant, age)
     local response = string.format("Price for %s: %s", itemLink, ns.FormatMoney(price))
-    if age ~= nil then
-        response = response .. string.format(" (Disenchanted: %s - Age: %s)", ns.FormatMoney(disenchant), age)
+    if disenchant ~= nil then
+        response = response .. string.format(" (Disenchanted: %s", ns.FormatMoney(disenchant))
+        if age ~= nil then
+            response = response .. string.format(" - Age: %s", age)
+        end
+        response = response .. ")"
+    elseif age ~= nil then
+        response = response .. string.format(" (Age: %s)", age)
     end
     return response
 end
 
-local function SendPriceReply(itemLink, response)
+local function SendPriceReply(itemLink, response, request)
     MarkItemAnswered(itemLink)
     ns.SendChatMessage(response, "GUILD")
+    ns.RecordUsage(request, response)
 end
 
 -- Builds and sends the reply for a single item query, unless another leader
 -- has already answered it (see the dedupe/backoff comment above).
-local function ReplyToItemQuery(itemLink)
+local function ReplyToItemQuery(itemLink, request)
     if WasItemRecentlyAnswered(itemLink) then return end
 
     if ns.IsItemSoulbound(itemLink) then
-        SendPriceReply(itemLink, string.format("No price available for %s. Soulbound item.", itemLink))
+        SendPriceReply(itemLink, string.format("No price available for %s. Soulbound item.", itemLink), request)
         return
     end
 
     local price, disenchant, age = ResolvePrice(itemLink)
     if not price then
-        SendPriceReply(itemLink, string.format("No price available for %s. No market data", itemLink))
+        SendPriceReply(itemLink, string.format("No price available for %s. No market data", itemLink), request)
         return
     end
 
-    SendPriceReply(itemLink, FormatPriceResponse(itemLink, price, disenchant, age))
+    SendPriceReply(itemLink, FormatPriceResponse(itemLink, price, disenchant, age), request)
 end
 
 -- True if this guild chat message is one of our (or another leader's) price
@@ -128,17 +167,25 @@ local function HandlePotentialReplyEcho(message)
     return true
 end
 
-local function HandleGuildQuery(message)
+local function HandleGuildQuery(message, sender)
     if HandlePotentialReplyEcho(message) then return end
     if not message:find("^%?") or not ns.IsLeader() then return end
+
+    local request = {
+        timestamp = time(),
+        channel = "Guild",
+        user = sender or "Unknown",
+        message = message,
+    }
 
     for itemLink in message:gmatch(ITEM_LINK_PATTERN) do
         if not WasItemRecentlyAnswered(itemLink) then
             -- Small jitter gives a competing leader's reply (if any) a
             -- chance to arrive first and suppress this one, mirroring the
             -- PING/PONG jitter used for presence.
+            local queryItemLink = itemLink
             local delay = RandomJitterSeconds(PRICE_REPLY_JITTER_MIN_SECONDS, PRICE_REPLY_JITTER_MAX_SECONDS)
-            C_Timer.After(delay, function() ReplyToItemQuery(itemLink) end)
+            C_Timer.After(delay, function() ReplyToItemQuery(queryItemLink, request) end)
         end
     end
 end
@@ -172,8 +219,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local prefix, message, channel, sender = ...
         ns.HandleAddonMessage(prefix, message, channel, sender)
     elseif event == "CHAT_MSG_GUILD" then
-        local message = ...
-        HandleGuildQuery(message)
+        local message, sender = ...
+        HandleGuildQuery(message, sender)
     end
 end)
 

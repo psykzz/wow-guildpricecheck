@@ -4,6 +4,7 @@
 ## Author: PsyKzz
 ## Version: @project-version@
 ## RequiredDeps: Auctionator
+## SavedVariables: GuildPriceCheckDB
 
 ## X-Curse-Project-ID: 1463417
 
@@ -13,5 +14,7 @@
 ## IconTexture: Interface\Icons\INV_Misc_Coin_01
 
 util.lua
+disenchant.lua
 core.lua
+settings.lua
 slash.lua

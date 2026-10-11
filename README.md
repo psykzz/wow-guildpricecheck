@@ -6,7 +6,9 @@ A World of Warcraft addon that replies to guild queries with Auctionator prices.
 
 - Listens for messages in guild chat starting with `?` followed by an item link
 - Returns the current auction house price from Auctionator data
+- Calculates a disenchant estimate from material auction prices if Auctionator's disenchant API has no usable value
 - Uses leader election to ensure only one guild member responds
+- Includes an addon settings panel with an about page and the last 20 price checks handled by this client
 - Requires the Auctionator addon to function
 - Listed under **Auctions** in the AddOns list with a coin icon
 
@@ -25,6 +27,8 @@ In guild chat, type `?` followed by an item link (Shift+Click an item):
 ```
 
 The addon will automatically respond with the current auction house price if available.
+
+Open the addon settings panel through **Options > AddOns > GuildPriceCheck** or with `/gpc settings`. The panel explains how price checks are handled and shows the latest 20 query/reply pairs sent by this client.
 
 ## Releasing
 
@@ -56,6 +60,7 @@ Without these secrets, the packager will still create a GitHub release with the 
 
 - `GuildPriceCheck.toc` - Addon metadata and file list
 - `core.lua` - Main addon logic
+- `disenchant.lua` - Compatibility fallback for Auctionator disenchant estimates
 - `.pkgmeta` - BigWigs packager configuration
 - `.github/workflows/release.yml` - Automated release workflow
 

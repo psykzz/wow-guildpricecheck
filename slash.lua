@@ -34,9 +34,14 @@ SlashCmdList["GPC"] = function(msg)
     elseif cmd == "ping" then
         print("Sending manual network ping...")
         if ns.SendPresence then ns.SendPresence("PING") end
+    elseif cmd == "settings" or cmd == "options" then
+        if ns.OpenSettings then
+            ns.OpenSettings()
+        end
     else
         print("GuildPriceCheck Usage:")
         print("  /gpc status - See online peers and elected leader")
         print("  /gpc ping   - Force a network refresh")
+        print("  /gpc settings - Open addon settings")
     end
 end
