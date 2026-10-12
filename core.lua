@@ -21,20 +21,28 @@ ns.OnlineAddonUsers = {}     -- [name] = { name = string, rank = index, guid = s
 
 local MAX_USAGE_ENTRIES = 20
 
-if type(GuildPriceCheckDB) ~= "table" then
-    GuildPriceCheckDB = {}
-end
-if type(GuildPriceCheckDB.usage) ~= "table" then
-    GuildPriceCheckDB.usage = {}
-end
-if type(GuildPriceCheckDB.auctionatorPriceTimestamps) ~= "table" then
-    GuildPriceCheckDB.auctionatorPriceTimestamps = {}
-end
+-- SavedVariables are loaded after this file runs (before ADDON_LOADED), which
+-- replaces GuildPriceCheckDB, so this is re-run on ADDON_LOADED and lazily.
+local function EnsureDB()
+    if type(GuildPriceCheckDB) ~= "table" then
+        GuildPriceCheckDB = {}
+    end
+    if type(GuildPriceCheckDB.usage) ~= "table" then
+        GuildPriceCheckDB.usage = {}
+    end
+    if type(GuildPriceCheckDB.auctionatorPriceTimestamps) ~= "table" then
+        GuildPriceCheckDB.auctionatorPriceTimestamps = {}
+    end
 
-ns.UsageHistory = GuildPriceCheckDB.usage
-while #ns.UsageHistory > MAX_USAGE_ENTRIES do
-    table.remove(ns.UsageHistory, 1)
+    ns.UsageHistory = GuildPriceCheckDB.usage
+    while #ns.UsageHistory > MAX_USAGE_ENTRIES do
+        table.remove(ns.UsageHistory, 1)
+    end
+    return GuildPriceCheckDB
 end
+ns.EnsureDB = EnsureDB
+
+EnsureDB()
 
 local hookedAuctionatorSetPrice = {}
 
@@ -48,7 +56,7 @@ local function HookAuctionatorSetPrice(target)
     local hookedSetPrice = function(self, dbKey, ...)
         local result = originalSetPrice(self, dbKey, ...)
         if dbKey ~= nil then
-            GuildPriceCheckDB.auctionatorPriceTimestamps[tostring(dbKey)] = time()
+            EnsureDB().auctionatorPriceTimestamps[tostring(dbKey)] = time()
         end
         return result
     end
@@ -66,6 +74,7 @@ end
 HookAuctionatorPriceTimestamps()
 
 function ns.RecordUsage(request, reply)
+    EnsureDB()
     table.insert(ns.UsageHistory, {
         timestamp = request.timestamp or time(),
         channel = request.channel or "Guild",
@@ -149,7 +158,7 @@ end
 
 local function GetAuctionatorPriceTimestamp(dbKey)
     if dbKey == nil then return nil end
-    return GuildPriceCheckDB.auctionatorPriceTimestamps[tostring(dbKey)]
+    return EnsureDB().auctionatorPriceTimestamps[tostring(dbKey)]
 end
 
 local function GetAuctionatorPriceAge(itemLink)
@@ -554,6 +563,7 @@ end
 -- --- Main Event Handler ---
 
 local frame = CreateFrame("Frame")
+frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("CHAT_MSG_GUILD")
 if not ns.AceComm then
     frame:RegisterEvent("CHAT_MSG_ADDON")
@@ -565,7 +575,13 @@ frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 local hasShownLoadedMessage = false
 
 frame:SetScript("OnEvent", function(self, event, ...)
-    if event == "PLAYER_ENTERING_WORLD" then
+    if event == "ADDON_LOADED" then
+        local loadedAddon = ...
+        if loadedAddon == addonName then
+            EnsureDB()
+            if ns.RefreshUsage then ns.RefreshUsage() end
+        end
+    elseif event == "PLAYER_ENTERING_WORLD" then
         local isInitialLogin = ...
         if isInitialLogin and not hasShownLoadedMessage then
             print("|cff00ff00GuildPriceCheck Loaded:|r Listening for ?[Item] in Guild Chat.")
