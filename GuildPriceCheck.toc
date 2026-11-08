@@ -1,6 +1,6 @@
 ## Interface: 11508,20505,50503,120001,16001
 ## Title: GuildPriceCheck
-## Notes: Replies to guild queries with Auctionator prices.
+## Notes: Whispers Auctionator prices in response to guild queries.
 ## Author: PsyKzz
 ## Version: @project-version@
 ## RequiredDeps: Auctionator

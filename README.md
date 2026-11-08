@@ -1,11 +1,11 @@
 # GuildPriceCheck
 
-A World of Warcraft addon that replies to guild queries with Auctionator prices.
+A World of Warcraft addon that whispers Auctionator prices in response to guild queries.
 
 ## Features
 
 - Listens for messages in guild chat starting with `?` followed by an item link
-- Returns the current auction house price from Auctionator data
+- Whispers the current auction house price from Auctionator data to the requester
 - Compares available price ages across addon users before the elected leader replies
 - Calculates a disenchant estimate from material auction prices if Auctionator's disenchant API has no usable value
 - Uses leader election to ensure only one guild member responds
@@ -27,7 +27,7 @@ In guild chat, type `?` followed by an item link (Shift+Click an item):
 ?[Item Name]
 ```
 
-The addon will automatically respond with the current auction house price if available.
+The addon will automatically whisper the requester with the current auction house price if available. Queries still go in guild chat; replies are private to avoid protected-call failures on clients that block automatic guild replies.
 
 Before replying, addon users share their local price source, age, and price. The elected leader waits briefly, then uses the freshest comparable candidate; ties and incomparable ages follow the existing version/rank/GUID election order. Candidate prices are sent in copper. GuildPriceCheck records per-item timestamps when Auctionator processes scan results, allowing freshness to be compared to the nearest minute or hour without changing Auctionator files. Prices without a captured timestamp use Auctionator's whole-scan-day age when available; TSM does not expose age.
 

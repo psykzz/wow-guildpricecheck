@@ -409,7 +409,7 @@ end
 
 local function SendPriceReply(itemLink, response, request)
     MarkItemAnswered(itemLink)
-    ns.SendChatMessage(response, "GUILD")
+    ns.SendChatMessage(response, "WHISPER", request.user)
     ns.RecordUsage(request, response)
 end
 

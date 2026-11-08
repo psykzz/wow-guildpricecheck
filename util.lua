@@ -6,8 +6,8 @@ ns.PREFIX = "GPCL_SYNC"
 local C_ChatInfo_SendChatMessage = C_ChatInfo.SendChatMessage or SendChatMessage
 local C_Item_GetItemInfo = C_Item.GetItemInfo or GetItemInfo
 
-function ns.SendChatMessage(message, channel)
-    return C_ChatInfo_SendChatMessage(message, channel)
+function ns.SendChatMessage(message, channel, target)
+    return C_ChatInfo_SendChatMessage(message, channel, nil, target)
 end
 
 function ns.GetItemInfo(itemLink)

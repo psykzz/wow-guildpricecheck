@@ -19,7 +19,7 @@ local about = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 about:SetJustifyH("LEFT")
 about:SetWordWrap(true)
 about:SetText(
-    "GuildPriceCheck replies to guild messages that start with ? followed by an item link. " ..
+    "GuildPriceCheck whispers the requester with prices for guild messages that start with ? followed by an item link. " ..
     "The online addon client with the newest version is preferred to answer; ties are resolved " ..
     "by guild rank and then GUID, which helps prevent duplicate replies.\n\n" ..
     "Prices use fresh Auctionator data when available, then fall back to TSM's DBMinBuyout, " ..
