@@ -26,6 +26,12 @@ about:SetText(
     "and finally to older Auctionator data. Auctionator is required; TSM is optional."
 )
 
+local ignoreSoulbound = CreateFrame("CheckButton", nil, content, "InterfaceOptionsCheckButtonTemplate")
+ignoreSoulbound.Text:SetText("Ignore soulbound items")
+ignoreSoulbound:SetScript("OnClick", function(self)
+    GuildPriceCheckDB.ignoreSoulbound = self:GetChecked()
+end)
+
 local historyTitle = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 historyTitle:SetText("Recent Usage (last 20)")
 
@@ -59,7 +65,12 @@ local function RefreshUsage()
     about:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -28)
     about:SetWidth(width)
 
-    local nextTop = -28 - math.max(about:GetStringHeight(), 1) - 20
+    local aboutHeight = math.max(about:GetStringHeight(), 1)
+    ignoreSoulbound:ClearAllPoints()
+    ignoreSoulbound:SetPoint("TOPLEFT", content, "TOPLEFT", -4, -28 - aboutHeight - 8)
+    ignoreSoulbound:SetChecked(GuildPriceCheckDB.ignoreSoulbound)
+
+    local nextTop = -28 - aboutHeight - ignoreSoulbound:GetHeight() - 20
     historyTitle:ClearAllPoints()
     historyTitle:SetPoint("TOPLEFT", content, "TOPLEFT", 0, nextTop)
     nextTop = nextTop - math.max(historyTitle:GetStringHeight(), 1) - 8

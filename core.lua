@@ -33,6 +33,9 @@ local function EnsureDB()
     if type(GuildPriceCheckDB.auctionatorPriceTimestamps) ~= "table" then
         GuildPriceCheckDB.auctionatorPriceTimestamps = {}
     end
+    if type(GuildPriceCheckDB.ignoreSoulbound) ~= "boolean" then
+        GuildPriceCheckDB.ignoreSoulbound = false
+    end
 
     ns.UsageHistory = GuildPriceCheckDB.usage
     while #ns.UsageHistory > MAX_USAGE_ENTRIES do
@@ -419,6 +422,10 @@ local function ReplyToItemQuery(itemLink, request, candidate, disenchant)
     if WasItemRecentlyAnswered(itemLink) then return end
 
     if ns.IsItemSoulbound(itemLink) then
+        if EnsureDB().ignoreSoulbound then
+            MarkItemAnswered(itemLink)
+            return
+        end
         SendPriceReply(itemLink, string.format("No price available for %s. Soulbound item.", itemLink), request)
         return
     end
@@ -596,6 +603,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local prefix, message, channel, sender = ...
         ns.HandleAddonMessage(prefix, message, channel, sender)
     elseif event == "CHAT_MSG_GUILD" then
+        if IsInInstance() then return end
         local message, sender = ...
         HandleGuildQuery(message, sender)
     end

@@ -33,6 +33,8 @@ Before replying, addon users share their local price source, age, and price. The
 
 Open the addon settings panel through **Options > AddOns > GuildPriceCheck** or with `/gpc settings`. The panel explains how price checks are handled and shows the latest 20 query/reply pairs sent by this client.
 
+The settings panel includes **Ignore soulbound items**. When enabled, soulbound items in guild queries are skipped without sending a whisper.
+
 ## Releasing
 
 This addon uses the BigWigs packager for automated releases:
